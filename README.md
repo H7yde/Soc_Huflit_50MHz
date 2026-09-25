@@ -107,6 +107,6 @@ Thư mục KQ chứa hình ảnh, waveform và kết quả thí nghiệm. Thư m
 - classification chỉ có ý nghĩa khi STATUS.done = 1.
 - Nếu synthesis quá lâu, kiểm tra đang dùng core FSM tuần tự, không phải model cũ có task process_frame.
 - Khi thay đổi weight, chạy lại simulation trước khi synthesis.
+- Folder KQ chỉ chứa các hình wf với tb nên ko cần để ý :)
 
 Repository: https://github.com/H7yde/Soc_Huflit_50MHz
-
