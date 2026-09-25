@@ -1,0 +1,25 @@
+# Vivado generated/cache directories
+SOC_HUFLIT_2026.cache/
+SOC_HUFLIT_2026.gen/
+SOC_HUFLIT_2026.hw/
+SOC_HUFLIT_2026.ip_user_files/
+SOC_HUFLIT_2026.runs/
+SOC_HUFLIT_2026.sim/
+.sim_check_parallel/
+
+# Generated simulator and tool files
+*.jou
+*.log
+*.str
+*.wdb
+*.dcp
+*.rdb
+*.pb
+*.xdbg
+*.xsim*
+*.vcd
+__pycache__/
+
+# Local Git/Vivado temporary files
+*.backup
+*.swp

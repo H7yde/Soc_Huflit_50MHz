@@ -1,0 +1,76 @@
+<mxfile host="app.diagrams.net" agent="Codex" compressed="false">
+  <diagram id="i2c-slave-core" name="I2C Slave Core">
+    <mxGraphModel dx="2670" dy="1226" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1400" background="light-dark(#FFFFFF,#FFFFFF)" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=3;arcSize=2;fillColor=none;strokeColor=light-dark(#E53935,#E53935);" vertex="1">
+          <mxGeometry height="725" width="1340" x="472" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=42;fontStyle=1;fontColor=light-dark(#000000,#000000);" value="FUNDAMENTAL ARCHITECTURE OF I2C&amp;nbsp;" vertex="1">
+          <mxGeometry height="65" width="1360" x="520" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=28;fontStyle=1;fontColor=light-dark(#000000,#000000);" value="I2C SLAVE&amp;nbsp;" vertex="1">
+          <mxGeometry height="50" width="350" x="410" y="146" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=2;dashed=1;strokeColor=light-dark(#92B3E6,#92B3E6);fillColor=light-dark(#E9EFF7,#E9EFF7);" vertex="1">
+          <mxGeometry height="474" width="373" x="528.5" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=26;fontStyle=1;fontColor=light-dark(#4D7DB2,#4D7DB2);" value="I2C REGISTER&amp;nbsp;" vertex="1">
+          <mxGeometry height="40" width="320" x="550" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;strokeWidth=2;fillColor=light-dark(#274B70,#274B70);strokeColor=light-dark(#5E8BC0,#5E8BC0);fontSize=25;fontStyle=1;fontColor=light-dark(#FFFFFF,#FFFFFF);spacing=8;" value="DATA REGISTER" vertex="1">
+          <mxGeometry height="140" width="250" x="590" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;strokeWidth=2;fillColor=light-dark(#274B70,#274B70);strokeColor=light-dark(#5E8BC0,#5E8BC0);fontSize=25;fontStyle=1;fontColor=light-dark(#FFFFFF,#FFFFFF);spacing=8;" value="COMMAND REGISTER" vertex="1">
+          <mxGeometry height="140" width="250" x="590" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;strokeWidth=2;fillColor=light-dark(#264225,#264225);strokeColor=light-dark(#5E8B52,#5E8B52);fontSize=25;fontStyle=1;fontColor=light-dark(#FFFFFF,#FFFFFF);spacing=8;" value="STATUS REGISTER" vertex="1">
+          <mxGeometry height="120" width="250" x="1120" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;strokeWidth=2;fillColor=light-dark(#5B4000,#5B4000);strokeColor=light-dark(#B68B00,#B68B00);fontSize=27;fontStyle=1;fontColor=light-dark(#FFFFFF,#FFFFFF);spacing=8;" value="I2C FSM" vertex="1">
+          <mxGeometry height="99" width="194" x="1148" y="450.5" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;strokeWidth=2;fillColor=light-dark(#6D3A3A,#6D3A3A);strokeColor=light-dark(#DA7D7D,#DA7D7D);fontSize=26;fontStyle=1;fontColor=light-dark(#FFFFFF,#FFFFFF);spacing=8;" value="BIT TIMING&lt;br&gt;&amp;amp; COUNTERS" vertex="1">
+          <mxGeometry height="138" width="313" x="1088.5" y="675" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;strokeWidth=2;fillColor=light-dark(#274B70,#274B70);strokeColor=light-dark(#5E8BC0,#5E8BC0);fontSize=27;fontStyle=1;fontColor=light-dark(#FFFFFF,#FFFFFF);spacing=8;" value="SDA / SCL&#xa;LINE CONTROL" vertex="1">
+          <mxGeometry height="160" width="260" x="1500" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="13" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;strokeWidth=2;fillColor=light-dark(#325B23,#325B23);strokeColor=light-dark(#7EB85A,#7EB85A);fontSize=24;fontStyle=1;fontColor=light-dark(#FFFFFF,#FFFFFF);" value="SCL" vertex="1">
+          <mxGeometry height="100" width="170" x="1961" y="363" as="geometry" />
+        </mxCell>
+        <mxCell id="14" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;strokeWidth=2;fillColor=light-dark(#325B23,#325B23);strokeColor=light-dark(#7EB85A,#7EB85A);fontSize=24;fontStyle=1;fontColor=light-dark(#FFFFFF,#FFFFFF);" value="SDA" vertex="1">
+          <mxGeometry height="100" width="170" x="1961" y="545" as="geometry" />
+        </mxCell>
+        <mxCell id="15" edge="1" parent="1" source="7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=light-dark(#6C88AF,#6C88AF);entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="16" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=light-dark(#6C88AF,#6C88AF);entryX=0.25;entryY=1;entryDx=0;entryDy=0;" target="10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="17" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=light-dark(#6A8D58,#6A8D58);" target="9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="18" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=light-dark(#C06D6D,#C06D6D);" target="11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="19" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=light-dark(#C06D6D,#C06D6D);" target="10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="20" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=light-dark(#B68B00,#B68B00);" target="12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="21" edge="1" parent="1" source="12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=light-dark(#6C88AF,#6C88AF);exitX=1;exitY=0.25;exitDx=0;exitDy=0;" target="13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="22" edge="1" parent="1" source="12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=light-dark(#6C88AF,#6C88AF);exitX=1;exitY=0.75;exitDx=0;exitDy=0;" target="14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="23" edge="1" parent="1" source="14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=light-dark(#6A8D58,#6A8D58);exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,70 @@
+\chapter{CÁC CÔNG TRÌNH NGHIÊN CỨU LIÊN QUAN}
+
+\section{Tổng quan các hướng nghiên cứu về SoC trên nền RISC-V}
+
+Sự phát triển mạnh mẽ của kiến trúc tập lệnh mở RISC-V \cite{riscv_unprivileged} đã thúc đẩy nhiều nghiên cứu thiết kế vi xử lý và hệ thống trên chip (SoC) tích hợp trên nền tảng FPGA. Nhằm tối ưu hóa diện tích thực thi và mức tiêu thụ tài nguyên cho các ứng dụng nhúng gọn nhẹ, lõi PicoRV32 \cite{picorv32_repo} được phát triển như một bộ xử lý 32-bit (RV32I/IMC) có kích thước siêu nhỏ gọn. Tuy nhiên, bản thân công trình PicoRV32 \cite{picorv32_repo} chỉ tập trung vào việc cung cấp lõi CPU thuần túy với giao diện bộ nhớ đơn giản (Native Memory Interface). Việc triển khai lõi này vào một SoC hoàn chỉnh đòi hỏi phải ghép nối thêm hệ thống cầu nối bus chuẩn hóa và các khối giao tiếp ngoại vi phù hợp.
+
+Ở quy mô phức tạp hơn, BlackParrot được phát triển như một kiến trúc RISC-V đa nhân, có khả năng làm máy chủ cho các bộ tăng tốc phần cứng \cite{petrisko2020blackparrot}. Simply-V hướng tới một nền tảng soft-SoC linh hoạt, hỗ trợ thay đổi CPU, IP và bộ tăng tốc phục vụ nghiên cứu, tạo mẫu nhanh \cite{maisto2026simplyv}. Bên cạnh đó, Ma và cộng sự tập trung tích hợp các lõi mật mã độ trễ thấp vào SoC RISC-V \cite{ma2023riscvcrypto}. Các công trình này chủ yếu giải quyết kiến trúc xử lý, khả năng cấu hình và tích hợp bộ tăng tốc; chưa khảo sát trực tiếp mô hình ngoại vi AXI4-Lite kết hợp một giao diện DDR I/O như hướng tiếp cận của khóa luận.
+
+\section{Các giải pháp chuẩn hóa giao tiếp ngoại vi với bus AXI4-Lite}
+
+Để truyền tải dữ liệu giữa lõi xử lý và các mô-đun ngoại vi, các chuẩn giao tiếp nối tiếp như UART \cite{huang2024uartcommunication,wakhle2012uartvhdl,xie2024uartfpga,ti_uart_overview}, SPI \cite{analog_spi_overview} và I2C \cite{nxp_um10204} được sử dụng phổ biến trong hệ thống nhúng và có thể hiện thực trên FPGA. Ở phía kết nối nội bộ, AMBA AXI4-Lite cung cấp một giao diện ánh xạ bộ nhớ gọn nhẹ để CPU truy cập các thanh ghi điều khiển và trạng thái của ngoại vi \cite{arm_axi4_spec,amd_axi4lite_hls}.
+
+Theo đặc tả AMBA AXI, AXI4-Lite là tập con của AXI4 dành cho các giao dịch ánh xạ bộ nhớ đơn, không hỗ trợ truyền burst. Giao diện gồm 5 kênh: địa chỉ ghi (AW), dữ liệu ghi (W), phản hồi ghi (B), địa chỉ đọc (AR) và dữ liệu đọc (R). Mỗi kênh sử dụng cơ chế bắt tay \path{VALID/READY}; do các kênh đọc và ghi được tách biệt, các pha bắt tay có thể tiến triển độc lập tùy theo khả năng của Master, Slave và khối liên kết \cite{arm_axi4_spec,amd_axi4lite_hls,emil2023axiinterconnect}.
+
+Các nghiên cứu UART được khảo sát chủ yếu tập trung vào cấu trúc bộ phát/thu, tạo tốc độ baud và kiểm chứng khung dữ liệu, chưa đặt trọng tâm vào giao diện I/O truyền dữ liệu ở cả hai cạnh clock \cite{huang2024uartcommunication,wakhle2012uartvhdl,xie2024uartfpga}. Đối với một giao diện đồng bộ, tăng tần số clock là một cách nâng thông lượng nhưng đồng thời làm thu hẹp chu kỳ dành cho đường dữ liệu, khiến yêu cầu timing closure chặt chẽ hơn và có thể làm tăng công suất động \cite{amd_ug949}. Vì vậy, kỹ thuật DDR là một hướng khác để tăng số lần truyền trên mỗi chu kỳ mà không nhất thiết tăng tần số clock.
+
+\section{Nghiên cứu về kỹ thuật DDR và quản lý Timing ở tần số cao}
+
+Kỹ thuật Double Data Rate (DDR) \cite{jedec_ddr} là phương pháp truyền dữ liệu tại cả cạnh lên và cạnh xuống của xung nhịp, giúp tăng gấp đôi lưu lượng truyền lý thuyết tại cùng một tần số clock. Trong các hệ thống số, kỹ thuật DDR được ứng dụng ở hai mức độ khác nhau: bộ điều khiển bộ nhớ chính DDR SDRAM (Memory Controller) \cite{shashikumar2010ahbddr, olgun2022pidram, hassan2018softmc, wijeratne2021programmable, bonatto2008ddrinterface, naresh2016ddrcontroller} và khối giao tiếp truyền nhận dữ liệu tốc độ cao (DDR I/O Interface) \cite{ejaz2018ddrnoc, psarras2017nocddr, chisciotti2022ddrbuffer}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{images/Timing_example.png}
+\caption{So sánh mối quan hệ định thời ngõ vào (Input Timing) giữa Clock và Data ở phương thức căn lề cạnh (Edge-aligned) và căn lề giữa (Center-aligned) tại phía nhận (chuyển thể từ \cite{arumugham2000ddrtiming}).}
+\label{fig:input-timing-alignment}
+\end{figure}
+
+Trong giao tiếp đồng bộ nguồn (Source-Synchronous), một thách thức quan trọng của khối nhận là đặt cạnh lấy mẫu vào vùng dữ liệu ổn định và duy trì đủ biên setup/hold \cite{arumugham2000ddrtiming,amd_ug471,amd_ug903}:
+\begin{itemize}
+    \item {Mô hình căn lề cạnh (Edge-aligned):} Cạnh chuyển của clock phát gần với cạnh chuyển dữ liệu. Vì vậy, phía nhận thường phải điều chỉnh pha clock hoặc sử dụng tài nguyên trễ thích hợp để đưa cạnh lấy mẫu vào trong cửa sổ dữ liệu hợp lệ, tránh làm giảm biên $t_{setup}$ và $t_{hold}$ \cite{arumugham2000ddrtiming,amd_ug471}.
+    \item {Mô hình căn lề giữa (Center-aligned):} Cạnh clock lấy mẫu được bố trí gần tâm của cửa sổ dữ liệu hợp lệ. Với DDR lý tưởng, độ lệch tương ứng khoảng một phần tư chu kỳ clock so với cạnh chuyển dữ liệu, nhờ đó cân bằng biên setup và hold tại phía nhận \cite{arumugham2000ddrtiming,amd_ug903}.
+\end{itemize}
+
+Do đó, các ràng buộc \path{set_output_delay} và \path{set_input_delay} trong tệp XDC phải mô tả đúng quan hệ định thời giữa clock và dữ liệu. Đối với giao diện DDR, các ràng buộc cần bao phủ cả cạnh lên và cạnh xuống, thường sử dụng các tùy chọn \path{-clock_fall} và \path{-add_delay}, để Vivado phân tích đầy đủ các kiểm tra setup/hold của giao diện \cite{amd_ug903,amd_vivado_docs}.
+
+Các nghiên cứu về bộ điều khiển DDR SDRAM tập trung giải quyết chuỗi lệnh và các tham số định thời của bộ nhớ vật lý, chẳng hạn $t_{RP}$, $t_{RCD}$ và độ trễ CAS \cite{shashikumar2010ahbddr,bonatto2008ddrinterface,naresh2016ddrcontroller}. Khóa luận này không thiết kế một bộ điều khiển DDR SDRAM; thay vào đó, đề tài sử dụng các phần tử DDR I/O để phát và thu dữ liệu hai cạnh clock, đồng thời ánh xạ khối xử lý vào không gian thanh ghi AXI4-Lite để CPU điều khiển.
+
+\section{So sánh tổng hợp và định hướng của đề tài}
+
+Từ phạm vi của các nhóm công trình về lõi RISC-V, liên kết AXI và giao tiếp DDR, Bảng~\ref{tab:literature-comparison} tóm tắt điểm khác biệt giữa các hướng nghiên cứu tiêu biểu và định hướng của khóa luận \cite{picorv32_repo,petrisko2020blackparrot,maisto2026simplyv,emil2023axiinterconnect,shashikumar2010ahbddr,ejaz2018ddrnoc,psarras2017nocddr}.
+
+\begin{table}[htbp]
+\centering
+\caption{Bảng tổng hợp so sánh phạm vi các nghiên cứu liên quan và định hướng đề tài}
+\label{tab:literature-comparison}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{2.8cm}|>{\raggedright\arraybackslash}p{3.2cm}|>{\raggedright\arraybackslash}p{4.2cm}|>{\raggedright\arraybackslash}p{3.5cm}|}
+\hline
+\textbf{Nghiên cứu/Tài liệu} & \textbf{Nền tảng và kiến trúc} & \textbf{Phạm vi tập trung} & \textbf{Định hướng trong khóa luận} \\
+\hline
+PicoRV32 \cite{picorv32_repo}, Simply-V \cite{maisto2026simplyv} & Lõi RISC-V gọn nhẹ và nền tảng soft-SoC cấu hình được & Tối ưu lõi CPU hoặc hỗ trợ tích hợp linh hoạt CPU, IP và bộ tăng tốc; chưa tập trung vào giao tiếp ngoại vi DDR. & Sử dụng PicoRV32 kết hợp bộ chuyển đổi Native Memory--AXI4-Lite và khối giao tiếp DDR. \\
+\hline
+AXI4-Lite \cite{arm_axi4_spec,emil2023axiinterconnect} và UART/SPI \cite{huang2024uartcommunication,analog_spi_overview} & Bus AXI4-Lite và ngoại vi nối tiếp & Chuẩn hóa truy cập thanh ghi bằng 5 kênh bắt tay độc lập; các nghiên cứu ngoại vi khảo sát chưa tập trung vào DDR I/O. & Tích hợp các ngoại vi AXI4-Lite với khối gia tốc truyền dữ liệu hai cạnh clock để tăng thông lượng. \\
+\hline
+Bộ điều khiển DDR SDRAM \cite{shashikumar2010ahbddr,bonatto2008ddrinterface,naresh2016ddrcontroller} & Bộ điều khiển bộ nhớ độc lập & Điều khiển DDR SDRAM ngoài chip với các tham số định thời bộ nhớ phức tạp. & Xây dựng khối DDR I/O gọn nhẹ, ánh xạ thanh ghi AXI4-Lite để CPU điều khiển trực tiếp. \\
+\hline
+DDR Buffer/NoC \cite{ejaz2018ddrnoc,psarras2017nocddr,chisciotti2022ddrbuffer} & Bộ đệm tốc độ cao, DDR-NoC & Tăng tốc độ truyền nội bộ; chưa tập trung vào giao diện điều khiển ngoại vi AXI4-Lite. & Ứng dụng kỹ thuật Center-aligned và thiết lập XDC \cite{amd_ug903} để đạt $WNS \ge 0$. \\
+\hline
+Tài liệu Arm và AMD/Xilinx \cite{arm_axi4_spec,amd_ds180,amd_ds181,amd_ug471,amd_ug949,amd_ug903} & AXI4-Lite, FPGA 7 Series và Vivado & Đặc tả giao thức AXI, tài nguyên SelectIO, đặc tính thiết bị và phương pháp ràng buộc timing. & Tổng hợp và đánh giá SoC AXI4-Lite trên FPGA Artix-7 XC7A200T. \\
+\hline
+\end{tabular}
+\end{table}
+
+Dựa trên việc phân tích phạm vi và kế thừa kết quả từ các nghiên cứu trước, khóa luận xác định mục tiêu xây dựng một hệ thống SoC RISC-V hoàn chỉnh dựa trên lõi PicoRV32 \cite{picorv32_repo}, tích hợp hệ thống bus AMBA AXI4-Lite và khối giao tiếp ngoại vi hỗ trợ truyền dữ liệu hai cạnh clock (DDR) \cite{jedec_ddr}. Các mục tiêu cụ thể bao gồm:
+
+\begin{enumerate}
+    \item {Đóng gói chuẩn hóa ngoại vi AXI4-Lite:} Xây dựng và đóng gói khối giao tiếp hai cạnh clock DDR thành một mô-đun ngoại vi AXI4-Lite, cho phép lõi CPU PicoRV32 cấu hình và trao đổi dữ liệu trực tiếp thông qua giao diện ánh xạ bộ nhớ \cite{picorv32_repo,arm_axi4_spec,jedec_ddr}.
+    \item {Tối ưu lưu lượng giao tiếp ngoại vi:} Khai thác cả cạnh lên và cạnh xuống để tăng gấp đôi số lần truyền dữ liệu lý thuyết trong mỗi chu kỳ so với SDR tại cùng tần số clock \cite{jedec_ddr,psarras2017nocddr}.
+    \item {Đạt trạng thái Timing Closure:} Áp dụng phương pháp luận UltraFast \cite{amd_ug949} và thiết lập tệp ràng buộc XDC \cite{amd_ug903} với kỹ thuật Center-aligned trên phần mềm Vivado \cite{amd_vivado_docs} nhằm kiểm soát các chỉ số dư thừa thời gian, bảo đảm chỉ số $WNS \ge 0$ khi hệ thống hoạt động ở tần số mục tiêu.
+    \item {Kiểm chứng thực nghiệm:} Tổng hợp và thực thi thiết kế SoC cho FPGA Artix-7, mã thiết bị \path{xc7a200tfbg676-2L} \cite{amd_ds180,amd_ds181}. Đánh giá thiết kế thông qua các báo cáo sử dụng tài nguyên, định thời và công suất của Vivado \cite{amd_vivado_docs,amd_ug949}.
+\end{enumerate}

@@ -1,0 +1,343 @@
+\chapter{CƠ SỞ LÝ THUYẾT}
+
+\section{Hệ thống SoC trên nền tảng RISC-V}
+
+SoC trong đề tài được xây dựng theo hướng một hệ thống xử lý nhúng gọn nhẹ, trong đó lõi RISC-V đóng vai trò điều khiển trung tâm và các mô-đun ngoại vi được kết nối thông qua bus nội bộ. Thành phần xử lý chính là PicoRV32, một lõi RISC-V 32 bit có kích thước nhỏ, phù hợp để tích hợp trên FPGA và thuận tiện cho việc quan sát luồng tín hiệu ở mức RTL. Lõi này phát sinh các yêu cầu truy cập bộ nhớ thông qua giao diện \textit{native memory}, gồm địa chỉ, dữ liệu ghi, dữ liệu đọc, tín hiệu hợp lệ, tín hiệu sẵn sàng và tín hiệu cho phép ghi theo byte \cite{picorv32_repo,riscv_unprivileged}.
+
+\begin{figure}[htbp]
+\centering
+\IfFileExists{images/SoC.png}{%
+    \includegraphics[width=0.98\textwidth,height=0.48\textheight,keepaspectratio,trim=20bp 20bp 20bp 20bp,clip]{images/SoC.png}%
+}{%
+    \fbox{\parbox[c][6cm][c]{0.9\textwidth}{\centering Bổ sung hình kiến trúc SoC tại images/SoC.png}}%
+}
+\caption{Kiến trúc tổng quan của hệ thống SoC RISC-V tích hợp bộ điều khiển DDR và các khối ngoại vi.}
+\label{fig:soc-overview}
+\end{figure}
+
+Hình~\ref{fig:soc-overview} minh họa kiến trúc tổng quan và mối liên kết giữa các thành phần chính của hệ thống. Ở mức cao nhất, hệ thống kết nối PicoRV32 với bộ nhớ lệnh/dữ liệu nội bộ và các ngoại vi thông qua bus AXI4-Lite. Vùng địa chỉ thấp được dùng cho BRAM 4 KB, trong đó chương trình được nạp từ tập tin firmware.hex. Khi CPU cần lấy lệnh, yêu cầu được đưa trực tiếp đến BRAM để giảm độ phức tạp của đường truy cập lệnh. Khi CPU thực hiện đọc hoặc ghi dữ liệu đến vùng ngoại vi, yêu cầu từ giao diện native memory được chuyển sang giao thức AXI4-Lite thông qua mô-đun \path{picorv32_axi_adapter} \cite{picorv32_repo,amd_axi4lite_hls}.
+
+Khối chuyển đổi (Adapter) có nhiệm vụ biến một truy cập nguyên thủy của CPU thành một giao dịch AXI4-Lite tiêu chuẩn với 5 kênh tín hiệu độc lập. Nhờ cơ chế bắt tay (Handshake) thông qua cặp tín hiệu \path{VALID} và \path{READY}, hệ thống đảm bảo dữ liệu chỉ được truyền đi khi cả Master và Slave đều sẵn sàng. Cách tổ chức này giúp lõi RISC-V không cần trực tiếp xử lý chi tiết của từng ngoại vi, đồng thời tạo ra một lớp kết nối thống nhất và có khả năng mở rộng băng thông cao cho toàn bộ hệ thống \cite{amd_axi4lite_hls}.
+
+Phần ngoại vi của SoC được chia theo vùng địa chỉ. Mô-đun \path{soc_axi_top} đóng vai trò như một bộ định tuyến (Crossbar), giải mã các vùng \path{0x4000_0000}, \path{0x4000_1000} và \path{0x4000_2000} lần lượt cho UART, SPI và I2C. Ngoài ra, khối parallel được ánh xạ riêng tại vùng \path{0x4000_3000}. Đây là khối xử lý song song gồm bốn lane, mỗi lane nhận hai toán hạng 32 bit và tạo kết quả cộng tương ứng. Các thanh ghi A, B, thanh ghi điều khiển/trạng thái và thanh ghi kết quả đều được truy cập thông qua bus AXI, nhờ đó phần mềm chạy trên PicoRV32 có thể ghi dữ liệu đầu vào, kích hoạt xử lý và đọc kết quả trả về \cite{amd_axi4lite_hls,picorv32_repo}.
+
+Như vậy, trọng tâm của SoC này không nằm ở việc xây dựng một MCU thương mại đầy đủ, mà là tạo ra một nền tảng RISC-V có đủ các thành phần cần thiết để kiểm chứng luồng truyền dữ liệu ở mức phần cứng. PicoRV32 đảm nhiệm vai trò phát lệnh và điều khiển, bộ chuyển đổi AXI bảo đảm việc luân chuyển giao dịch giữa CPU và ngoại vi, còn các khối UART, SPI, I2C và parallel cung cấp môi trường để đánh giá khả năng truyền nhận, xử lý song song và mở rộng băng thông của hệ thống. Kiến trúc này là nền tảng để các phần sau phân tích cơ chế truyền dữ liệu hai cạnh clock, timing và khả năng nâng tần số hoạt động \cite{picorv32_repo,riscv_unprivileged}.
+
+\section{Lõi xử lý RISC-V PicoRV32}
+
+RISC-V là kiến trúc tập lệnh mở, được tổ chức theo một tập lệnh cơ sở kết hợp với
+các phần mở rộng tùy chọn. Trong cấu hình RV32I, độ rộng thanh ghi nguyên
+$XLEN$ bằng 32 bit; kiến trúc cung cấp 32 thanh ghi nguyên từ \path{x0} đến
+\path{x31} và một thanh ghi bộ đếm chương trình. Thanh ghi \path{x0} luôn có
+giá trị bằng không, trong khi các thanh ghi còn lại được sử dụng để lưu toán
+hạng, địa chỉ và kết quả trung gian của chương trình \cite{riscv_unprivileged}.
+
+PicoRV32 là một lõi RISC-V mã nguồn mở được mô tả bằng Verilog, hướng đến việc
+tối ưu diện tích logic và tần số hoạt động trên FPGA hoặc ASIC. Dự án PicoRV32
+cung cấp ba biến thể chính: \path{picorv32} sử dụng giao diện bộ nhớ nguyên bản,
+\path{picorv32_axi} sử dụng giao diện AXI4-Lite và \path{picorv32_wb} sử dụng
+giao diện Wishbone. Trong khóa luận này, biến thể \path{picorv32} được lựa chọn
+vì giao diện bắt tay đơn giản, thuận lợi cho việc kết nối BRAM siêu tốc (1 chu kỳ) và xây dựng cầu
+nối sang bus AXI4-Lite thông qua một bộ Adapter chuyên dụng \cite{picorv32_repo}.
+
+Giao diện bộ nhớ nguyên bản của PicoRV32 hoạt động theo cơ chế
+\path{valid/ready} và xử lý một giao dịch tại mỗi thời điểm. Các tín hiệu chính
+bao gồm:
+\begin{itemize}
+    \item \path{mem_valid}: báo hiệu CPU đang phát sinh một yêu cầu truy cập bộ nhớ;
+    \item \path{mem_instr}: phân biệt chu kỳ lấy lệnh với chu kỳ truy cập dữ liệu;
+    \item \path{mem_ready}: xác nhận bộ nhớ hoặc thiết bị đích đã hoàn tất giao dịch;
+    \item \path{mem_addr}: mang địa chỉ truy cập 32 bit;
+    \item \path{mem_wdata} và \path{mem_rdata}: lần lượt mang dữ liệu ghi và dữ liệu đọc 32 bit;
+    \item \path{mem_wstrb}: gồm bốn bit cho phép ghi, tương ứng với bốn byte của một từ dữ liệu 32 bit.
+\end{itemize}
+
+Khi bắt đầu một giao dịch, PicoRV32 đưa \path{mem_valid} lên mức cao và giữ ổn
+định các tín hiệu địa chỉ, dữ liệu và điều khiển cho đến khi nhận được
+\path{mem_ready}. Đối với giao dịch đọc, \path{mem_wstrb} bằng không và dữ liệu
+được nhận qua \path{mem_rdata}. Đối với giao dịch ghi, một hoặc nhiều bit của
+\path{mem_wstrb} được kích hoạt để xác định các byte cần cập nhật trong từ dữ
+liệu. Cơ chế này cho phép ghép nối trực tiếp với bộ nhớ đơn giản hoặc chuyển đổi
+sang một giao thức bus khác thông qua mạch cầu nối \cite{picorv32_repo}.
+
+PicoRV32 còn hỗ trợ nhiều tham số cấu hình nhằm cân bằng giữa diện tích và hiệu
+năng, chẳng hạn lựa chọn tập thanh ghi một cổng hoặc hai cổng đọc, bộ dịch barrel,
+hỗ trợ ngắt và giao diện đồng xử lý PCPI. Các phép nhân, chia có thể được bổ sung
+thông qua các khối PCPI tương ứng. Nhờ khả năng cấu hình này, lõi có thể được
+điều chỉnh cho các hệ thống nhúng nhỏ hoặc mở rộng khi ứng dụng cần thêm chức
+năng xử lý \cite{picorv32_repo}.
+
+Trong SoC của khóa luận, PicoRV32 thực hiện lấy lệnh trực tiếp từ BRAM nội bộ với độ trễ tối thiểu, và truy cập
+các ngoại vi thông qua mô-đun \path{picorv32_axi_adapter}. Cầu nối tiếp nhận yêu
+cầu từ giao diện bộ nhớ nguyên bản, biên dịch thành các kênh giao dịch độc lập của AXI4-Lite và chỉ đưa
+\path{mem_ready} lên mức cao sau khi ngoại vi hoàn tất quá trình phản hồi \path{BVALID} hoặc \path{RVALID}. Vì vậy,
+PicoRV32 đóng vai trò bộ điều khiển trung tâm, trong khi bus AXI cung cấp không
+gian địa chỉ thống nhất cho UART, SPI, I\textsuperscript{2}C và khối xử lý song
+song DDR.
+
+\section{Sự khác biệt giữa truyền dữ liệu SDR và DDR}
+
+Ở phương thức Single Data Rate (SDR), dữ liệu thường được phát hoặc lấy mẫu tại một cạnh cố định của xung clock, chẳng hạn cạnh lên hoặc cạnh xuống. Với tần số clock $f_{clk}$ và bus dữ liệu có độ rộng $W$, tốc độ truyền lý thuyết có thể biểu diễn gần đúng bởi \cite{jedec_ddr,shashikumar2010ahbddr}:
+
+\begin{equation}
+R_{SDR}=W\times f_{clk}.
+\end{equation}
+
+Trong khi đó, Double Data Rate (DDR) sử dụng cả cạnh lên và cạnh xuống của xung clock để truyền dữ liệu. Như vậy, trong một chu kỳ clock có thể truyền hai lần dữ liệu. Tốc độ truyền lý thuyết khi đó được xác định bởi \cite{jedec_ddr,psarras2017nocddr}:
+
+\begin{equation}
+R_{DDR}=2\times W\times f_{clk}.
+\end{equation}
+
+Việc khai thác hai cạnh clock cũng được áp dụng trong các giao diện nối tiếp tốc độ cao, chẳng hạn chế độ truyền DDR trên các bộ điều khiển nhớ ngoài của vi điều khiển NXP \cite{nxp2021ddrmode}.
+
+Theo đó, DDR có thể tăng gấp đôi số lần truyền trong cùng một khoảng thời gian mà không nhất thiết phải tăng độ rộng bus. Đây là điểm trọng tâm của đề tài. Tuy nhiên, việc sử dụng hai cạnh clock cũng làm yêu cầu về thời điểm phát dữ liệu, thời điểm lấy mẫu, độ lệch clock và thời gian ổn định của tín hiệu trở nên nghiêm ngặt hơn \cite{ejaz2018ddrnoc,psarras2017nocddr,amd_ug949}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/DDR_SDR.png}
+\caption{Minh họa sự khác biệt giữa phương thức truyền dữ liệu SDR và DDR \cite{jedec_ddr}.}
+\label{fig:sdr-ddr-waveform}
+\end{figure}
+
+Hình~\ref{fig:sdr-ddr-waveform} cho thấy SDR chỉ thay đổi dữ liệu theo một cạnh clock, trong khi DDR khai thác cả cạnh lên và cạnh xuống để tăng gấp đôi số lần truyền trong mỗi chu kỳ so với SDR \cite{jedec_ddr}.
+
+\begin{table}[htbp]
+\centering
+\caption{So sánh khái quát giữa SDR và DDR}
+\label{tab:sdr-ddr-comparison}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{3.2cm}|>{\raggedright\arraybackslash}p{5.2cm}|>{\raggedright\arraybackslash}p{5.2cm}|}
+\hline
+Tiêu chí & SDR & DDR \\
+\hline
+Số lần truyền trong một chu kỳ & Một lần & Hai lần \\
+\hline
+Điểm phát hoặc lấy mẫu & Một cạnh clock & Cả cạnh lên và cạnh xuống \\
+\hline
+Băng thông lý thuyết & Thấp hơn ở cùng tần số & Cao hơn ở cùng tần số \\
+\hline
+Yêu cầu timing & Tương đối đơn giản & Chặt chẽ hơn \\
+\hline
+Độ phức tạp thiết kế & Thấp hơn & Cao hơn do phải quản lý hai cạnh clock \\
+\hline
+\end{tabular}
+\end{table}
+
+Sự khác biệt trực quan về mật độ dữ liệu giữa hai phương thức được thể hiện trên Hình~\ref{fig:sdr-ddr-waveform}. Việc chuyển sang sử dụng cả hai cạnh xung nhịp mang lại cho kỹ thuật DDR những thế mạnh cốt lõi so với phương thức SDR \cite{ejaz2018ddrnoc,psarras2017nocddr}:
+
+Thứ nhất, DDR giúp tăng gấp đôi băng thông truyền tải mà không cần nâng cao tần số xung nhịp hệ thống. Để đạt cùng một hiệu năng xử lý, phương thức SDR phải tăng tần số $f_{clk}$, kéo theo nguy cơ gia tăng nhiễu điện từ (EMI), làm phức tạp mạng phân phối clock (\textit{Clock Tree}) và dễ vi phạm ràng buộc timing. DDR giải quyết vấn đề này bằng cách nhân đôi lưu lượng dữ liệu trên một chu kỳ clock \cite{psarras2017nocddr,amd_ug949}.
+
+Thứ hai, DDR hỗ trợ tiết kiệm tài nguyên chân I/O khi cần tăng băng thông. Với SDR, một phương án tăng băng thông mà không tăng tần số là mở rộng độ rộng bus dữ liệu, làm tăng số lượng đường tín hiệu. Kỹ thuật DDR cho phép giữ nguyên số đường dữ liệu vật lý nhưng tăng số lần truyền trong mỗi chu kỳ \cite{jedec_ddr,shashikumar2010ahbddr}.
+
+Thứ ba, DDR có thể cải thiện hiệu suất năng lượng khi đạt cùng mức băng thông ở tần số clock thấp hơn. Trong mạch số, công suất động phụ thuộc vào tần số chuyển mạch; vì vậy việc hạn chế tăng clock có thể giảm áp lực công suất trên mạng xung nhịp \cite{amd_ug949}.
+
+Mặc dù sở hữu nhiều ưu điểm về mặt hiệu năng và tài nguyên, phương thức DDR cũng đặt ra thách thức lớn hơn về quản lý timing. Do thời gian dành cho một lần truyền bị thu hẹp xuống còn $T_{clk}/2$, các thông số như thời gian thiết lập ($t_{setup}$), thời gian giữ ($t_{hold}$) và độ lệch clock ($clock\ skew$) phải được kiểm soát chặt chẽ. Mô hình DDR trong đề tài tập trung vào việc thiết kế và tối ưu khối giao tiếp RTL hai cạnh clock nhằm chứng minh tính hiệu quả trên nền tảng RISC-V SoC \cite{amd_ug949,psarras2017nocddr}.
+
+\section{Giao tiếp UART}
+
+Universal Asynchronous Receiver/Transmitter (UART) là chuẩn giao tiếp nối tiếp bất đồng bộ, được sử dụng rộng rãi trong các hệ thống nhúng để trao đổi dữ liệu giữa vi điều khiển, máy tính, module ngoại vi hoặc mạch kiểm thử. Đặc điểm quan trọng của UART là hai thiết bị không dùng chung một đường clock truyền kèm dữ liệu. Thay vào đó, bên truyền và bên nhận phải thống nhất trước các tham số như tốc độ baud, số bit dữ liệu, bit kiểm tra chẵn lẻ nếu có và số bit dừng \cite{ti_uart_overview,huang2024uartcommunication,campbell_uart}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/uart.png}
+\caption{Kiến trúc và luồng dữ liệu của giao tiếp UART \cite{campbell_uart}.}
+\label{fig:uart-chapter2}
+\end{figure}
+
+Hình~\ref{fig:uart-chapter2} trình bày các thành phần chính của bộ điều khiển UART, bao gồm khối thanh ghi dùng để lưu dữ liệu truyền, dữ liệu nhận, cấu hình và trạng thái hoạt động. Khối chia xung clock xác định chu kỳ của từng bit. Máy trạng thái điều khiển trình tự phát và thu, trong khi thanh ghi dịch truyền bổ sung bit bắt đầu và bit dừng rồi đưa dữ liệu tuần tự ra đường TX. Theo chiều ngược lại, khối lấy mẫu giám sát đường RX, nhận lần lượt các bit và ghép chúng thành dữ liệu song song để CPU đọc qua bus AXI \cite{wakhle2012uartvhdl,xie2024uartfpga}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/Uart_wf.png}
+\caption{Dạng sóng truyền nhận dữ liệu của giao tiếp UART \cite{campbell_uart}.}
+\label{fig:uart-waveform}
+\end{figure}
+
+Hình~\ref{fig:uart-waveform} minh họa cấu trúc thời gian của một khung UART, gồm trạng thái rỗi, bit bắt đầu, các bit dữ liệu và bit dừng \cite{ti_uart_overview}.
+
+Về nguyên lý, dữ liệu song song bên trong hệ thống được UART chuyển thành chuỗi bit nối tiếp trước khi đưa ra chân truyền. Khi không có dữ liệu, đường truyền thường ở trạng thái rỗi. Một khung truyền bắt đầu bằng bit start để báo cho bên nhận biết thời điểm lấy mẫu, tiếp theo là các bit dữ liệu, sau đó có thể có bit parity và kết thúc bằng một hoặc nhiều bit stop. Bên nhận phát hiện bit start, dùng tốc độ baud đã cấu hình để lấy mẫu các bit kế tiếp và ghép lại thành dữ liệu song song \cite{ti_uart_overview,huang2024uartcommunication}.
+
+UART có ưu điểm là cấu trúc đơn giản, ít chân tín hiệu và dễ dùng trong giai đoạn kiểm thử. Chỉ cần hai đường chính là TX và RX, hệ thống đã có thể gửi log, truyền lệnh điều khiển hoặc kiểm tra dữ liệu đầu ra. Hạn chế của UART nằm ở tốc độ không cao bằng các giao tiếp đồng bộ và độ chính xác phụ thuộc vào sai số baud rate giữa hai phía. Nếu tần số lấy mẫu bị lệch nhiều, bên nhận có thể đọc sai bit, đặc biệt khi khung dữ liệu dài hoặc tốc độ truyền cao \cite{ti_uart_overview}.
+
+Trong SoC, UART được ánh xạ tại địa chỉ \path{0x4000_0000}. CPU RISC-V điều khiển UART thông qua các thanh ghi AXI4-Lite. Khi cần gửi dữ liệu, phần mềm ghi byte hoặc word vào thanh ghi truyền; module UART sẽ tuần tự hóa dữ liệu và phát ra chân uart\_tx. Khi có dữ liệu đi vào từ chân uart\_rx, UART lấy mẫu, phục hồi dữ liệu và đặt vào thanh ghi nhận để CPU đọc lại. Nhờ cơ chế này, UART đóng vai trò kênh giao tiếp cơ bản giữa SoC và môi trường bên ngoài, đồng thời hỗ trợ quan sát hoạt động của hệ thống trong quá trình mô phỏng hoặc chạy trên FPGA \cite{amd_axi4lite_hls,amd_axi4lite_hls}.
+
+\section{Giao tiếp I2C}
+
+Inter-Integrated Circuit (I2C) là chuẩn giao tiếp nối tiếp đồng bộ sử dụng hai đường tín hiệu chính: SCL và SDA. SCL mang xung clock, còn SDA mang dữ liệu hai chiều. Khác với UART, I2C cho phép nhiều thiết bị cùng chia sẻ một bus thông qua cơ chế địa chỉ slave. Điều này làm I2C phù hợp với các hệ thống cần kết nối nhiều cảm biến, EEPROM, mạch quản lý nguồn hoặc IC cấu hình mà không muốn tiêu tốn quá nhiều chân I/O \cite{nxp_um10204,riverdi_i2c}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/i2c.png}
+\caption{Kiến trúc và trình tự truyền dữ liệu của giao tiếp I\textsuperscript{2}C  \cite{riverdi_i2c}.}
+\label{fig:i2c-chapter2}
+\end{figure}
+
+Hình~\ref{fig:i2c-chapter2} minh họa cấu tạo của bộ điều khiển I\textsuperscript{2}C. Khối thanh ghi lưu địa chỉ thiết bị, dữ liệu, lệnh điều khiển và trạng thái ACK/NACK. Khối định thời và bộ đếm bit tạo các pha cần thiết trên đường SCL. Máy trạng thái điều khiển lần lượt các điều kiện START, truyền địa chỉ, truyền hoặc nhận dữ liệu, kiểm tra xác nhận và tạo điều kiện STOP. Khối điều khiển đường truyền quản lý hai tín hiệu SCL và SDA theo cơ chế cực máng hở; thiết bị chỉ kéo tín hiệu xuống mức thấp hoặc nhả đường bus để điện trở kéo lên tạo mức cao \cite{nxp_um10204}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/I2C_wf.png}
+\caption{Dạng sóng truyền dữ liệu của giao tiếp I\textsuperscript{2}C  \cite{riverdi_i2c}.}
+\label{fig:i2c-waveform}
+\end{figure}
+
+Hình~\ref{fig:i2c-waveform} minh họa quan hệ thời gian giữa hai đường SCL và SDA trong một giao dịch I\textsuperscript{2}C, bao gồm điều kiện START, các bit địa chỉ và dữ liệu, bit xác nhận ACK/NACK và điều kiện STOP \cite{nxp_um10204}.
+
+Về mặt hoạt động, bus I2C thường có một master điều khiển quá trình truyền thông và một hoặc nhiều slave phản hồi. Master tạo điều kiện start bằng cách kéo SDA xuống mức thấp khi SCL đang ở mức cao. Sau đó, master gửi địa chỉ slave cùng bit xác định hướng đọc hoặc ghi. Nếu slave nhận ra địa chỉ của mình, nó phản hồi bằng bit ACK. Dữ liệu tiếp tục được truyền theo từng byte, mỗi byte đi kèm một bit ACK hoặc NACK. Giao dịch kết thúc bằng điều kiện stop, khi SDA chuyển từ thấp lên cao trong lúc SCL ở mức cao \cite{nxp_um10204}.
+
+Do SDA là đường hai chiều, các thiết bị trên bus không được tự ý đẩy mức cao một cách chủ động như ngõ ra thông thường. Thực tế, đường SDA và SCL thường hoạt động theo kiểu open-drain hoặc open-collector, dùng điện trở kéo lên để tạo mức cao. Thiết bị chỉ kéo đường truyền xuống thấp khi cần phát logic 0, còn logic 1 được tạo bằng cách nhả đường truyền. Cách tổ chức này giúp nhiều thiết bị cùng nối trên bus mà hạn chế xung đột điện, nhưng cũng làm tốc độ bị ảnh hưởng bởi điện trở kéo lên và điện dung đường dây \cite{nxp_um10204}.
+
+Trong SoC, I2C được ánh xạ tại vùng 0x4000\_2000. Các tín hiệu scl\_out, sda\_out, sda\_oe và sda\_in thể hiện cách điều khiển đường dữ liệu hai chiều. Tín hiệu sda\_oe quyết định lúc module được phép kéo SDA xuống và lúc phải nhả bus để slave phản hồi. CPU cấu hình module I2C thông qua bus AXI4-Lite để tạo start, gửi địa chỉ, truyền hoặc nhận dữ liệu, kiểm tra ACK và tạo stop. Nhờ đó, SoC có khả năng giao tiếp với nhiều thiết bị tốc độ thấp hoặc trung bình bằng số lượng chân tín hiệu rất nhỏ \cite{nxp_um10204,amd_axi4lite_hls}.
+
+\section{Giao tiếp SPI}
+
+Serial Peripheral Interface (SPI) là chuẩn giao tiếp nối tiếp đồng bộ thường dùng giữa một master và một hoặc nhiều slave. Bus SPI phổ biến với bốn tín hiệu: SCLK, MOSI, MISO và CS. Master tạo xung clock trên SCLK, gửi dữ liệu đến slave qua MOSI, nhận dữ liệu từ slave qua MISO và chọn thiết bị cần giao tiếp bằng tín hiệu CS. Do có clock riêng, SPI thường đạt tốc độ cao hơn UART và đơn giản hơn I2C ở phần định địa chỉ \cite{analog_spi_overview,digilent_spi}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/spi.png}
+\caption{Kiến trúc và luồng dữ liệu song công của giao tiếp SPI \cite{digilent_spi}.}
+\label{fig:spi-chapter2}
+\end{figure}
+
+Hình~\ref{fig:spi-chapter2} trình bày các thành phần chính của bộ điều khiển SPI, bao gồm khối thanh ghi lưu dữ liệu truyền, dữ liệu nhận, cấu hình chế độ và trạng thái giao dịch. Bộ chia clock tạo tín hiệu SCLK, còn bộ đếm bit xác định thời điểm hoàn tất một từ dữ liệu. Máy trạng thái điều khiển tín hiệu chọn thiết bị CS và các pha lấy mẫu theo cấu hình CPOL/CPHA. Hai thanh ghi dịch thực hiện đồng thời việc đưa từng bit ra MOSI và nhận từng bit từ MISO, nhờ đó SPI hỗ trợ truyền dữ liệu song công toàn phần \cite{analog_spi_overview}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{images/SPI_wfpng.png}
+\caption{Dạng sóng truyền dữ liệu của giao tiếp SPI \cite{digilent_spi}.}
+\label{fig:spi-waveform}
+\end{figure}
+
+Hình~\ref{fig:spi-waveform} minh họa quan hệ thời gian giữa tín hiệu chọn thiết bị, xung clock nối tiếp và các đường dữ liệu MOSI/MISO trong một giao dịch SPI \cite{analog_spi_overview}.
+
+Hoạt động của SPI dựa trên sự dịch bit đồng thời ở hai hướng. Trong mỗi chu kỳ clock, master phát một bit trên MOSI và đồng thời lấy mẫu một bit từ MISO. Vì vậy, SPI có thể truyền song công toàn phần nếu cả master và slave đều hỗ trợ. Thứ tự bit, cực tính clock và pha lấy mẫu được quyết định bởi cấu hình SPI mode. Hai tham số quan trọng là CPOL và CPHA: CPOL xác định mức rỗi của clock, còn CPHA xác định cạnh clock dùng để lấy mẫu dữ liệu. Master và slave phải dùng cùng chế độ thì dữ liệu mới được nhận đúng \cite{analog_spi_overview}.
+
+Ưu điểm của SPI là tốc độ cao, giao thức gọn và dễ hiện thực bằng phần cứng. Chuẩn này phù hợp với ADC, DAC, cảm biến tốc độ cao, màn hình, thẻ nhớ hoặc flash ngoài. Nhược điểm chính là số chân chọn chip tăng theo số lượng slave nếu dùng cấu trúc truyền thống. Ngoài ra, SPI không có cơ chế địa chỉ và xác nhận dữ liệu chuẩn hóa như I2C, nên việc kiểm tra lỗi hoặc quản lý nhiều thiết bị thường do tầng giao thức phía trên đảm nhiệm \cite{analog_spi_overview}.
+
+Trong hệ thống được xây dựng, SPI nằm ở vùng địa chỉ 0x4000\_1000. CPU ghi dữ liệu cần truyền vào thanh ghi của module, cấu hình trạng thái giao dịch và đọc dữ liệu nhận được sau khi quá trình truyền hoàn tất thông qua chuẩn AXI4-Lite. Các chân spi\_sclk, spi\_mosi, spi\_miso và spi\_cs là giao diện vật lý nối ra ngoài. Nhờ kết nối linh hoạt này, SPI trở thành một ngoại vi có thể điều khiển thống nhất bằng phần mềm chạy trên PicoRV32, đồng thời cung cấp kênh truyền tốc độ cao hơn cho các thiết bị ngoại vi cần trao đổi dữ liệu liên tục \cite{analog_spi_overview,amd_axi4lite_hls}.
+
+\section{Giao tiếp AXI4-Lite và kết nối giữa các mô-đun}
+
+Advanced eXtensible Interface (AXI) phiên bản 4-Lite thuộc tập giao thức AMBA của ARM, là chuẩn bus được thiết kế dành riêng cho các thiết bị ngoại vi ánh xạ bộ nhớ (Memory-Mapped) có yêu cầu truyền tải ổn định với băng thông cao. Khác biệt hoàn toàn so với kiến trúc APB vốn dùng chung đường truyền và xử lý tuần tự, AXI4-Lite chia tách hệ thống thành 5 kênh (channels) truyền tải dữ liệu độc lập, cho phép CPU thực thi các giao dịch song song và đường ống (pipelining) một cách hiệu quả.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth,height=0.48\textheight,keepaspectratio]{images/axibus.png}
+\caption{Kiến trúc năm kênh truyền dữ liệu giữa AXI Master và AXI Slave \cite{amd_axi4lite_hls}.}
+\label{fig:axi4-lite-channels}
+\end{figure}
+
+Một giao dịch trên bus AXI4-Lite diễn ra thông qua cơ chế bắt tay (Handshake) chặt chẽ giữa tín hiệu `VALID` (từ thiết bị gửi) và `READY` (từ thiết bị nhận) trên 5 kênh cơ bản sau:
+\begin{itemize}
+    \item {Kênh Ghi địa chỉ (Write Address - AW):} Transmit địa chỉ cần ghi thông qua các chân `AWADDR`, `AWVALID` và `AWREADY`.
+    \item {Kênh Ghi dữ liệu (Write Data - W):} Transmit dữ liệu và mask tín hiệu byte (strobe) qua `WDATA`, `WSTRB`, `WVALID` và `WREADY`. Kênh dữ liệu này có thể hoạt động độc lập và song song với kênh địa chỉ.
+    \item {Kênh Phản hồi ghi (Write Response - B):} Cung cấp trạng thái báo cáo giao dịch ghi (thành công hay có lỗi) từ Slave về Master thông qua `BRESP`, `BVALID` và `BREADY`.
+    \item {Kênh Đọc địa chỉ (Read Address - AR):} Transmit địa chỉ cần truy xuất thông qua `ARADDR`, `ARVALID` và `ARREADY`.
+    \item {Kênh Đọc dữ liệu (Read Data - R):} Phản hồi dữ liệu kèm cờ trạng thái từ Slave về Master thông qua `RDATA`, `RRESP`, `RVALID` và `RREADY`.
+\end{itemize}
+
+Trong kiến trúc SoC được xây dựng, mô-đun Adapter \path{picorv32_axi_adapter} đóng vai trò là AXI Master duy nhất. Khối này tiếp nhận các yêu cầu đọc/ghi từ giao diện \textit{native memory} của lõi xử lý PicoRV32, sau đó tự động biên dịch thành các chuỗi tín hiệu trên 5 kênh AXI4-Lite. 
+
+Do thiết kế bao gồm nhiều Slave (nhóm UART, SPI, I2C và khối DDR song song), hệ thống sử dụng một bộ định tuyến Crossbar tích hợp bên trong mô-đun \path{soc_axi_top} thay vì chỉ dùng một bộ giải mã địa chỉ thông thường. Bộ định tuyến này thực hiện nhiệm vụ:
+\begin{enumerate}
+    \item {Giải mã địa chỉ:} Phân tích dải địa chỉ trên kênh `AWADDR` hoặc `ARADDR` để xác định chính xác thiết bị Slave mục tiêu.
+    \item {Chốt mục tiêu (Target Latching):} Khác với bus chia sẻ, các kênh của AXI hoạt động không đồng bộ. Bộ định tuyến sử dụng các thanh ghi chốt mục tiêu (\path{w_target} và \path{r_target}) để lưu giữ đường dẫn kết nối kênh dữ liệu (W, R) và kênh phản hồi (B) cho tới khi toàn bộ chu trình giao dịch của thiết bị Slave đó khép lại. Điều này ngăn chặn tình trạng thất thoát tín hiệu (Deadlock) hay giao tiếp chéo giữa các Slave đang hoạt động song song.
+\end{enumerate}
+
+Nhờ sự tối ưu của AXI4-Lite và bộ định tuyến đa kênh, SoC có khả năng điều phối giao tiếp đồng thời, đáp ứng tốt yêu cầu truyền dẫn dữ liệu tốc độ kép ở các phần sau \cite{amd_axi4lite_hls,emil2023axiinterconnect}.
+
+\section{Timing và giới hạn tần số hoạt động}
+
+Trong các thiết kế mạch số đồng bộ (Synchronous Digital Circuits), việc đảm bảo tính đúng đắn về mặt dữ liệu phụ thuộc vào các ràng buộc thời gian (Timing Constraints). Dữ liệu sau khi chốt tại phần tử lưu trữ nguồn (Source Flip-Flop) phải lan truyền qua mạng logic tổ hợp và đến được phần tử lưu trữ đích (Destination Flip-Flop) trước cạnh chốt clock tiếp theo. Để tránh vi phạm thời gian thiết lập (\textit{Setup Time Violation}), chu kỳ xung clock hệ thống $T_{clk}$ phải thỏa mãn điều kiện bất đẳng thức cơ bản \cite{amd_ug949}:
+
+\begin{equation}
+T_{clk} \geq t_{cq} + t_{logic} + t_{setup} + t_{skew},
+\end{equation}
+
+trong đó $t_{cq}$ (\textit{Clock-to-Q Delay}) là độ trễ từ lúc xuất hiện cạnh clock đến khi dữ liệu ổn định ở ngõ ra thanh ghi nguồn; $t_{logic}$ biểu diễn tổng độ trễ đường truyền qua logic tổ hợp và dây dẫn kết nối (\textit{Routing Delay}); $t_{setup}$ là thời gian duy trì dữ liệu ổn định tối thiểu trước cạnh clock chốt tại thanh ghi đích; và $t_{skew}$ (\textit{Clock Skew}) đại diện cho độ lệch thời điểm xuất hiện cạnh clock giữa hai thanh ghi nguồn và đích trên mạng phân phối xung nhịp \cite{amd_ug949}.
+
+Khi nâng cao tần số hoạt động của SoC (tương ứng với việc thu hẹp chu kỳ $T_{clk}$), khoảng thời gian dành cho dữ liệu lan truyền bị thu hẹp, khiến bất đẳng thức trên khó đáp ứng hơn. Nếu dữ liệu đến thanh ghi đích trễ hơn thời gian cho phép, thiết kế sẽ vi phạm ràng buộc setup và có thể hoạt động không ổn định trên phần cứng \cite{amd_ug949}.
+
+Đối với phương thức truyền dữ liệu hai cạnh clock DDR, yêu cầu timing closure trở nên chặt chẽ hơn. Do dữ liệu được phát và lấy mẫu ở cả cạnh lên và cạnh xuống, khoảng thời gian giữa hai lần truyền chỉ còn một nửa chu kỳ xung nhịp ($T_{clk}/2$). Điều này đòi hỏi nhà thiết kế không chỉ kiểm soát $t_{setup}$ mà còn phải đảm bảo ràng buộc thời gian giữ $t_{hold}$. Bên cạnh đó, các yếu tố như độ nhiễu pha xung nhịp (\textit{Clock Jitter}), độ lệch pha giữa các đường truyền song song (\textit{Data-to-Data Skew}) và khả năng đồng bộ miền xung nhịp (CDC) cũng ảnh hưởng đến tính toàn vẹn tín hiệu \cite{amd_ug949,psarras2017nocddr}.
+
+Trong phạm vi đề tài, quá trình phân tích và tối ưu timing được thực hiện định lượng thông qua bộ công cụ Vivado. Thiết kế SoC được khảo sát qua từng mức tần số clock tăng dần để đánh giá đường truyền tới hạn (\textit{Critical Path}). Giá trị slack, đặc biệt là chỉ số WNS (\textit{Worst Negative Slack}), được dùng làm tiêu chí đánh giá \cite{amd_vivado_docs,amd_ug949}:
+
+\begin{itemize}
+    \item {Slack $\geq 0$ (Slack dương):} Thiết kế hoàn toàn đạt ràng buộc timing, dữ liệu truyền nhận chính xác ở tần số khảo sát.
+    \item {Slack $< 0$ (Slack âm):} Hệ thống bị vi phạm timing. Lúc này, các giải pháp kỹ thuật RTL sẽ được áp dụng như: chèn các tầng thanh ghi trung gian (\textit{Pipelining}) để cắt ngắn độ trễ $t_{logic}$, tái cấu trúc logic tổ hợp, tối ưu hóa sơ đồ đặt và nối dây (\textit{Place \& Route}), hoặc sử dụng các khối quản lý xung nhịp chuyên dụng (như MMCM/PLL) để điều chỉnh pha xung nhịp linh hoạt.
+\end{itemize}
+Các tiêu chí slack và phương pháp tối ưu nêu trên phù hợp với quy trình timing closure của Vivado \cite{amd_ug949}.
+
+Việc tăng tần số clock chỉ mang lại giá trị hiệu năng khi thiết kế vẫn đạt timing closure và duy trì tính đúng đắn trên phần cứng FPGA \cite{amd_ug949}.
+
+\section{Công cụ Vivado}
+
+Vivado Design Suite là môi trường phát triển phần cứng tích hợp do Xilinx, hiện thuộc AMD, phát triển cho quy trình thiết kế, kiểm thử và triển khai hệ thống số trên FPGA và Adaptive SoC. Công cụ tích hợp các tác vụ quản lý mã nguồn RTL, mô phỏng chức năng, tổng hợp logic, đặt và nối dây, phân tích timing và tạo tập tin cấu hình bitstream trong một môi trường thống nhất \cite{amd_vivado_docs}.
+
+Quy trình triển khai SoC RISC-V trên Vivado được thực hiện qua các giai đoạn khởi tạo dự án, tích hợp nguồn RTL, mô phỏng, tổng hợp và hiện thực. Các tệp Verilog cấu thành SoC gồm lõi \path{picorv32.v}, module Adapter \path{picorv32_axi_adapter.v}, khối giao tiếp ngoại vi \path{soc_axi_top.v}, khối \path{parallel.v} và các ngoại vi I/O. Vivado Simulator hỗ trợ chạy testbench để kiểm tra từng khối và toàn bộ hệ thống trước khi tổng hợp \cite{amd_vivado_docs,picorv32_repo}.
+
+Sau khi hoàn tất mô phỏng chức năng, tập tin ràng buộc \path{.xdc} được thiết lập để định nghĩa tần số clock mục tiêu, gán chân I/O và khai báo chuẩn điện áp. Vivado tổng hợp mã RTL thành netlist, sau đó thực hiện placement và routing nhằm đáp ứng các ràng buộc timing trước khi tạo bitstream để nạp lên phần cứng \cite{amd_vivado_docs,amd_ug949}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/Vivado.jpg}
+\caption{Giao diện phần mềm Vivado Design Suite \cite{flathub_vivado}.}
+\label{fig:vivado-interface}
+\end{figure}
+
+Vivado cung cấp các báo cáo sau tổng hợp và hiện thực để tinh chỉnh kiến trúc RTL. Báo cáo sử dụng tài nguyên thống kê LUT, thanh ghi, Block RAM và DSP; báo cáo timing cung cấp WNS, TNS và đường truyền tới hạn; trong khi công cụ phân tích công suất ước tính công suất tĩnh và động. Các dữ liệu này tạo cơ sở định lượng cho việc tối ưu thiết kế SoC \cite{amd_vivado_docs,amd_ug949}.
+
+\section{Nền tảng FPGA Xilinx 7 Series và thiết bị mục tiêu}
+
+Họ FPGA Xilinx 7 Series cung cấp các tài nguyên LUT, Flip-Flop, Block RAM, bộ đệm clock toàn cục và phần tử I/O chuyên dụng để hiện thực các hệ thống SoC tùy biến. Hình~\ref{fig:xilinx-7series-board-reference} minh họa một bo mạch Zynq XC7Z030 thuộc cùng thế hệ công nghệ 7 Series, trong đó vùng logic lập trình được có thể chứa lõi RISC-V, hệ thống bus AXI4-Lite và các ngoại vi tùy biến \cite{amd_ds190,amd_ug585,electromaker_zynq7030}.
+
+Trong môi trường Vivado phiên bản miễn phí được sử dụng cho đề tài, bo mạch Zynq tham khảo không có sẵn trong danh sách thiết bị mục tiêu phù hợp với cấu hình công cụ. Vì vậy, khóa luận lựa chọn FPGA Artix-7 \path{xc7a200tfbg676-2L} làm thiết bị tương đương để thực hiện mô phỏng, tổng hợp và phân tích sau hiện thực \cite{amd_ds181}. Artix-7 và phần logic lập trình của Zynq đều thuộc họ công nghệ Xilinx 7 Series, sử dụng các tài nguyên cơ bản tương đồng như LUT, Flip-Flop, Block RAM, mạng clock và SelectIO. Ngoài ra, hệ thống trong đề tài sử dụng lõi RISC-V PicoRV32 hiện thực bằng RTL, không sử dụng bộ xử lý ARM cứng của Zynq; do đó, việc chuyển mục tiêu sang Artix-7 không làm thay đổi kiến trúc chức năng cần kiểm chứng. Thiết bị này được dùng để mô phỏng khả năng triển khai trên một nền tảng FPGA tương tự, đồng thời tạo các báo cáo tài nguyên, định thời và công suất cho thiết kế SoC.
+
+\begin{figure}[H]
+\centering
+\IfFileExists{images/Board.jpg}{%
+    \includegraphics[width=0.9\textwidth]{images/Board.jpg}%
+}{%
+    \fbox{\parbox[c][5.5cm][c]{0.85\textwidth}{\centering Không tìm thấy tệp images/Board.jpg}}%
+}
+\caption{Bo mạch Zynq XC7Z030 thuộc nền tảng Xilinx 7 Series \cite{electromaker_zynq7030}.}
+\label{fig:xilinx-7series-board-reference}
+\end{figure}
+
+Ảnh bo mạch được sử dụng để minh họa cách các tài nguyên FPGA 7 Series được tích hợp với bộ nhớ và ngoại vi trên một nền tảng phát triển \cite{electromaker_zynq7030}. Thiết kế trong khóa luận được tổng hợp như một hệ thống FPGA độc lập trên Artix-7; vì vậy, các kết quả tài nguyên, timing và công suất ở Chương 5 đều được tính theo cấu hình xc7a200tfbg676-2L trên AMD Vivado 2025.2 \cite{amd_ds181,amd_vivado_docs}.
+
+\begin{table}[htbp]
+\centering
+\caption{Thông số cấu hình và tài nguyên của FPGA Artix-7 mục tiêu}
+\label{tab:xc7a200t-specs}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{4.8cm}|>{\raggedright\arraybackslash}p{8.7cm}|}
+\hline
+\textbf{Nhóm thông số} & \textbf{Giá trị hoặc đặc điểm kỹ thuật} \\
+\hline
+Họ thiết bị & Xilinx/AMD Artix-7 \\
+\hline
+Mã thiết bị & xc7a200tfbg676-2L \\
+\hline
+Slice LUTs khả dụng & 134,600 \\
+\hline
+Slice Registers khả dụng & 269,200 \\
+\hline
+Block RAM Tile (RAMB36E1) & 365 \\
+\hline
+Bonded I/O (IOB) & 400 \\
+\hline
+Global Clock Buffer (BUFG) & 32 \\
+\hline
+Clock hệ thống mục tiêu & $100\text{ MHz}$ \\
+\hline
+Tốc độ dữ liệu DDR mục tiêu & $200\text{ Mbps/pin}$ \\
+\hline
+\end{tabular}
+\end{table}
+
+Các thông số thiết bị trong Bảng~\ref{tab:xc7a200t-specs} được tổng hợp từ tài liệu DS181 và báo cáo thiết bị của Vivado \cite{amd_ds181,amd_vivado_docs}. Các tài nguyên này tạo không gian đủ lớn để triển khai lõi PicoRV32, bộ nhớ chương trình, bus AXI4-Lite, các ngoại vi UART/SPI/I\textsuperscript{2}C và khối phát DDR. Việc sử dụng cùng mã thiết bị trong mô tả nền tảng và báo cáo thực nghiệm giúp các tỷ lệ sử dụng tài nguyên ở Chương 5 được đối chiếu nhất quán.
+
+Bên cạnh tài nguyên logic, việc triển khai yêu cầu khai báo đúng clock, reset, chân I/O và chuẩn điện áp trong tệp \path{.xdc}. Các tín hiệu UART, SPI, I2C và DDR phải được ánh xạ đúng chân vật lý; đồng thời chuẩn điện áp của từng I/O bank phải phù hợp với phần cứng để bảo đảm tính toàn vẹn tín hiệu \cite{amd_ug949}.
+
+Quy trình kiểm chứng dựa trên mô phỏng RTL và báo cáo sau hiện thực để đánh giá clock, routing và các ràng buộc I/O. Đo dạng sóng trực tiếp bằng máy hiện sóng hoặc bộ phân tích logic là bước kiểm chứng phần cứng tiếp theo.

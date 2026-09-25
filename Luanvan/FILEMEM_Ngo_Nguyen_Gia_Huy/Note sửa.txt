@@ -1,0 +1,9 @@
+System on chip (SoC)---
+Sing
+bổ sung cite cho So sánh SDR-DDR
+sửa Font chữ cho bang so sánh --đồng bộ cỡ chữ
+sửa lại các bang thông số
+luận văn --> khóa luận 
+3.4 so sánh tổng hợp và định hướng đề tài
+so sánh parallel giữa 1lane- 2lane -3lane và 4 lane, so sánh timing, power của nó, tìm tài lieu cho DDR, vì sao là 4 lane mà không phải là 2-1 
+-thay chữ listing thành hình
