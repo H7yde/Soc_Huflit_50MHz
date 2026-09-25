@@ -1,0 +1,25 @@
+# compile verilog/system verilog design source files
+verilog xil_defaultlib  --include "../../../../../../Vivado_data/2025.2/Vivado/data/rsb/busdef" \
+"../../../../SOC_HUFLIT_2026.srcs/sources_1/new/parallel.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sources_1/new/picorv32.v" \
+"../../../../../backup/SOC_HUFLIT_2026/SOC_HUFLIT_2026/SOC_HUFLIT_2026.srcs/sources_1/new/soc_apb_top.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sources_1/new/soc_top.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sources_1/new/axi_uart_slave.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sources_1/new/axi_spi_slave.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sources_1/new/axi_i2c_slave.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sources_1/new/CNN.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sources_1/new/input_fifo_rgb.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sources_1/new/cnn_docx_reference.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sources_1/new/dma32_to_rgb24.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sim_2/new/Tb_parallel.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sim_2/new/tb_soc.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sim_2/new/tb_uart.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sim_2/new/tb_spi.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sim_2/new/tb_i2c.v" \
+"../../../../SOC_HUFLIT_2026.srcs/sim_2/new/Tb_CNN.v" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort

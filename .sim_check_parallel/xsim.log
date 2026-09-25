@@ -1,0 +1,38 @@
+#-----------------------------------------------------------
+# xsim v2025.2 (64-bit)
+# SW Build 6299465 on Fri Nov 14 19:35:11 GMT 2025
+# IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+# SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+# Start of session at: Mon Jul  6 15:56:44 2026
+# Process ID         : 24684
+# Current directory  : D:/LAB/SOC_HUFLIT_2026_parallel/.sim_check_parallel
+# Command line       : xsim.exe -mode tcl -source {xsim.dir/tb_parallel_check/xsim_script.tcl}
+# Log file           : D:/LAB/SOC_HUFLIT_2026_parallel/.sim_check_parallel/xsim.log
+# Journal file       : D:/LAB/SOC_HUFLIT_2026_parallel/.sim_check_parallel\xsim.jou
+# Running On         : MSI
+# Platform           : Windows Server 2016 or Windows 10
+# Operating System   : 26200
+# Processor Detail   : 13th Gen Intel(R) Core(TM) i7-13620H
+# CPU Frequency      : 2918 MHz
+# CPU Physical cores : 10
+# CPU Logical cores  : 16
+# Host memory        : 16868 MB
+# Swap memory        : 28991 MB
+# Total Virtual      : 45859 MB
+# Available Virtual  : 28394 MB
+#-----------------------------------------------------------
+source xsim.dir/tb_parallel_check/xsim_script.tcl
+# xsim {tb_parallel_check} -autoloadwcfg -runall
+Time resolution is 1 ps
+run -all
+TB: Dang ghi toan hang vao cac lane...
+TB: Kich hoat khoi parallel...
+--- KET QUA HIEN THI ---
+Lane 0 | Result = aaaa5557
+Lane 1 | Result = bbbb7778
+Lane 2 | Result = aaaa5558
+Lane 3 | Result = 3333cccd
+TB: Hoan thanh mo phong.
+$finish called at time : 765 ns : File "D:/LAB/SOC_HUFLIT_2026_parallel/SOC_HUFLIT_2026.srcs/sim_2/new/Tb_parallel.v" Line 99
+exit
+INFO: [Common 17-206] Exiting xsim at Mon Jul  6 15:56:50 2026...

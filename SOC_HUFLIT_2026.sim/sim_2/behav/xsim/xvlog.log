@@ -1,0 +1,46 @@
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sources_1/new/parallel.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module iddr_result_deserializer
+INFO: [VRFC 10-311] analyzing module independent_lane_distributor
+INFO: [VRFC 10-311] analyzing module ddr_result_serializer
+INFO: [VRFC 10-311] analyzing module parallel_lane
+INFO: [VRFC 10-311] analyzing module parallel_core
+INFO: [VRFC 10-311] analyzing module parallel_axi
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sources_1/new/picorv32.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module picorv32
+INFO: [VRFC 10-311] analyzing module picorv32_regs
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_mul
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_fast_mul
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_div
+INFO: [VRFC 10-311] analyzing module picorv32_axi
+INFO: [VRFC 10-311] analyzing module picorv32_axi_adapter
+INFO: [VRFC 10-311] analyzing module picorv32_wb
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/backup/SOC_HUFLIT_2026/SOC_HUFLIT_2026/SOC_HUFLIT_2026.srcs/sources_1/new/soc_apb_top.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module soc_axi_top
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sources_1/new/soc_top.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module soc_top
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sources_1/new/axi_uart_slave.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module axi_uart_slave
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sources_1/new/axi_spi_slave.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module axi_spi_slave
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sources_1/new/axi_i2c_slave.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module axi_i2c_slave
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sources_1/new/CNN.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module CNN
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sources_1/new/input_fifo_rgb.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module input_fifo_rgb
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sources_1/new/cnn_docx_reference.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module cnn_docx_reference
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sources_1/new/dma32_to_rgb24.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module dma32_to_rgb24
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sim_2/new/Tb_parallel.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_parallel_axi
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sim_2/new/tb_soc.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_soc_axi_top
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sim_2/new/tb_uart.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_uart
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sim_2/new/tb_spi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_spi
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sim_2/new/tb_i2c.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_i2c
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sim_2/new/Tb_CNN.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_CNN
