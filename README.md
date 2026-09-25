@@ -1,112 +1,181 @@
-# HUFLIT 50 MHz SoC with CNN Accelerator
+# HUFLIT 50 MHz SoC with CNN
 
-Project SoC FPGA chạy ở 50 MHz, tích hợp PicoRV32, các peripheral AXI/APB và bộ gia tốc CNN phân loại ảnh human/non-human.
+This repository contains the HUFLIT SoC FPGA project running at 50 MHz. It integrates a PicoRV32 CPU, AXI/APB peripherals, a parallel/DDR interface, and a CNN accelerator for binary human/non-human classification.
 
-## Kiến trúc CNN
+## Project layout
 
-RGB 32x32x3 -> Conv1 (3 to 4, kernel 3x3) -> MaxPool 2x2 -> Conv2 (4 to 4) -> MaxPool 2x2 -> Conv3 (4 to 4) -> MaxPool 2x2 -> Flatten 16 -> FC 16 to 1 -> classification.
+- SOC_HUFLIT_2026.xpr: Vivado project
+- SOC_HUFLIT_2026.srcs/sources_1/new: RTL source files
+- SOC_HUFLIT_2026.srcs/constrs_1/new: XDC constraints
+- SOC_HUFLIT_2026.srcs/sim_2/new: simulation testbenches
+- KQ: waveforms, images, and experiment results
+- Luanvan: thesis and design documents
 
-Core CNN dùng FSM và một MAC mỗi chu kỳ để giảm tài nguyên synthesis.
+## CNN architecture
 
-## Mở project Vivado
+The CNN accepts one RGB888 frame with 32 x 32 pixels.
 
-Mở file SOC_HUFLIT_2026.xpr hoặc chạy Tcl:
+    RGB 32x32x3
+        -> Conv1: 3 input channels, 4 output channels, 3x3 kernel
+        -> ReLU and INT8 requantization
+        -> MaxPool 2x2, stride 2
+        -> Conv2: 4 input channels, 4 output channels, 3x3 kernel
+        -> ReLU and INT8 requantization
+        -> MaxPool 2x2, stride 2
+        -> Conv3: 4 input channels, 4 output channels, 3x3 kernel
+        -> ReLU and INT8 requantization
+        -> MaxPool 2x2, stride 2
+        -> Flatten 2x2x4 = 16 values
+        -> FC 16 -> 1
+        -> classification bit
 
-    open_project SOC_HUFLIT_2026.xpr
+Feature-map sizes:
 
-Top-level là soc_top. Constraint clock 50 MHz nằm tại:
+    Input : 32x32x3
+    Conv1 : 30x30x4
+    Pool1 : 15x15x4
+    Conv2 : 13x13x4
+    Pool2 :  6x6x4
+    Conv3 :  4x4x4
+    Pool3 :  2x2x4
+    FC input: 16 values
 
-    SOC_HUFLIT_2026.srcs/constrs_1/new/soc_top.xdc
+The CNN RTL uses an FSM and one MAC per clock to reduce synthesis resources.
 
-## Các file quan trọng
+## Important CNN files
 
-| File | Chức năng |
+| File | Description |
 |---|---|
-| SOC_HUFLIT_2026.srcs/sources_1/new/CNN.v | AXI4-Lite peripheral CNN |
-| cnn_docx_reference.v | CNN FSM synthesizable |
-| dma32_to_rgb24.v | Đổi stream 32-bit thành RGB 24-bit |
-| conv1_rgb_weight.mem | 108 weight INT8 của Conv1 |
-| conv2_weight.mem | 144 weight INT8 của Conv2 |
-| conv3_weight.mem | 144 weight INT8 của Conv3 |
-| fc_weight.mem | 16 weight INT8 của FC |
-| Tb_CNN.v | Testbench CNN |
-| soc_top.v | Top-level toàn SoC |
+| SOC_HUFLIT_2026.srcs/sources_1/new/CNN.v | AXI4-Lite CNN peripheral |
+| cnn_docx_reference.v | Sequential synthesizable CNN core |
+| dma32_to_rgb24.v | Converts 32-bit byte stream to RGB24 pixels |
+| conv1_rgb_weight.mem | 108 INT8 Conv1 weights |
+| conv2_weight.mem | 144 INT8 Conv2 weights |
+| conv3_weight.mem | 144 INT8 Conv3 weights |
+| fc_weight.mem | 16 INT8 FC weights |
+| Tb_CNN.v | CNN AXI simulation testbench |
+| soc_top.v | SoC top-level module |
 
-## Bản đồ địa chỉ CNN
+## AXI address map
 
-CNN được ánh xạ tại base address 0x40004000.
+The CNN peripheral is mapped at base address 0x40004000.
 
-| Địa chỉ | Chức năng |
+| Address | Function |
 |---|---|
-| 0x40004000 - 0x40004BFC | 768 word ảnh, mỗi word 32-bit |
-| 0x40004FF4 | RESULT, bit 0 là classification |
-| 0x40004FF8 | STATUS, bit 0 là busy, bit 1 là done |
-| 0x40004FFC | CONTROL, ghi bit 0 = 1 để START |
+| 0x40004000 - 0x40004BFC | 768 image words, 32 bits each |
+| 0x40004FF4 | RESULT, bit 0 = classification |
+| 0x40004FF8 | STATUS, bit 0 = busy, bit 1 = done |
+| 0x40004FFC | CONTROL, write bit 0 = START |
 
-Một frame RGB 32x32 cần 3072 byte, tương đương 768 word 32-bit.
+One RGB frame contains:
 
-classification = 1 là human. classification = 0 là non-human.
+    32 x 32 x 3 = 3072 bytes
+    3072 / 4 = 768 AXI words
 
-## Luồng dữ liệu
+Result encoding:
 
-CPU ghi 768 word qua AXI -> frame_mem[0:767] -> dma32_to_rgb24 -> 1024 pixel RGB 24-bit -> CNN FSM -> result_valid/classification -> CPU đọc RESULT/STATUS qua AXI.
+    classification = 1: human
+    classification = 0: non-human
 
-Do một pixel RGB có 3 byte, dữ liệu có thể bị chia giữa hai word 32-bit. Module dma32_to_rgb24 xử lý việc ghép byte liên tục này.
+## Data flow
 
-## Weight và file .mem
+    CPU writes 768 words through AXI
+        -> frame_mem[0:767]
+        -> dma32_to_rgb24
+        -> 1024 RGB24 pixels
+        -> CNN FSM
+        -> result_valid and classification
+        -> CPU reads STATUS and RESULT
 
-Weight được train bằng Python/PyTorch, lượng tử hóa về INT8, sau đó ghi ra file .mem. Verilog nạp weight bằng system task readmemh.
+The byte stream is continuous. Since one RGB pixel uses three bytes, a pixel can cross a 32-bit word boundary. dma32_to_rgb24 preserves and repacks these bytes correctly.
 
-Weight âm sử dụng dạng bù 2, ví dụ -1 = FF và -2 = FE.
+## Weight memory files
 
-Khi synthesis, cần thêm các file .mem vào Vivado dưới dạng Design Sources hoặc Memory Initialization Files.
+Weights are trained in Python/PyTorch, quantized to INT8, and exported to memory files.
 
-## Mô phỏng CNN
+    Train model
+        -> Quantize INT8
+        -> Export .mem files
+        -> $readmemh in Verilog
 
-Thêm vào Simulation Sources:
+Negative INT8 values use two's complement representation:
+
+    -1 = FF
+    -2 = FE
+
+The four weight files must be added to Vivado as Design Sources or Memory Initialization Files.
+
+## Simulation
+
+Add these files to Simulation Sources:
 
     CNN.v
     cnn_docx_reference.v
     dma32_to_rgb24.v
     Tb_CNN.v
 
-Đặt top simulation là Tb_CNN.
+Set the simulation top to Tb_CNN.
 
-Testbench sẽ đọc frame RGB, ghi 768 word qua AXI, ghi lệnh START, chờ STATUS.done, đọc classification và in PASS hoặc FAIL trên console.
+The testbench:
 
-Frame mô phỏng gồm human_frame.mem và nonhuman_frame.mem.
+1. Loads RGB frame data.
+2. Packs the frame into 768 32-bit words.
+3. Writes the words through AXI4-Lite.
+4. Writes START to address 0x40004FFC.
+5. Polls STATUS until DONE.
+6. Reads RESULT.
+7. Prints PASS or FAIL.
 
-## Synthesis và implementation
+Typical frame files are:
 
-1. Mở SOC_HUFLIT_2026.xpr.
-2. Kiểm tra soc_top là top module.
-3. Kiểm tra file .xdc đang active.
-4. Kiểm tra các file .mem đã được thêm vào project.
-5. Chạy Run Synthesis.
-6. Chạy Run Implementation.
-7. Kiểm tra Timing Summary.
-8. Generate Bitstream.
+    human_frame.mem
+    nonhuman_frame.mem
 
-Các thư mục build/cache Vivado được bỏ qua bằng .gitignore: SOC_HUFLIT_2026.cache, SOC_HUFLIT_2026.gen, SOC_HUFLIT_2026.hw, SOC_HUFLIT_2026.ip_user_files, SOC_HUFLIT_2026.runs và SOC_HUFLIT_2026.sim.
+## Open and build with Vivado
 
-## Python và tài liệu
+Open:
 
-Các file train/export CNN nằm trong repository CNN_RTL:
+    SOC_HUFLIT_2026.xpr
+
+Or use Tcl:
+
+    open_project SOC_HUFLIT_2026.xpr
+
+Recommended flow:
+
+1. Set soc_top as the synthesis top.
+2. Check that soc_top.xdc is active.
+3. Check that all .mem files are present.
+4. Run Synthesis.
+5. Run Implementation.
+6. Review timing and utilization reports.
+7. Generate Bitstream.
+
+The XDC contains the 50 MHz clock constraint:
+
+    create_clock -period 20.000 -name sys_clk [get_ports clk]
+
+## Python and export files
+
+The CNN training/export files are maintained in the CNN_RTL repository:
 
     CNN_layer.py
     CNN_MEM.py
     export_cifar_frames.py
     tb_CNN.v
 
-Thư mục KQ chứa hình ảnh, waveform và kết quả thí nghiệm. Thư mục Luanvan chứa tài liệu và báo cáo.
+They are used to train the model, quantize weights, export .mem files, and generate frame test data.
 
-## Lưu ý
+## Notes
 
-- CNN dùng fixed-point/INT8 nên kết quả có thể khác model floating-point.
-- Thứ tự byte RGB phải thống nhất giữa Python, testbench, DMA và CNN.
-- classification chỉ có ý nghĩa khi STATUS.done = 1.
-- Nếu synthesis quá lâu, kiểm tra đang dùng core FSM tuần tự, không phải model cũ có task process_frame.
-- Khi thay đổi weight, chạy lại simulation trước khi synthesis.
+- The RTL uses fixed-point INT8 data, so results can differ from floating-point training.
+- RGB byte order must be identical in Python, the testbench, DMA, and CNN.
+- classification is valid only when STATUS.done is set.
+- If synthesis takes too long, verify that the sequential FSM core is used instead of the old task-based process_frame model.
+- After changing weights, run simulation before synthesis.
+- Vivado build and cache directories are included in this repository because the complete project was requested. They may be regenerated by Vivado.
 
-Repository: https://github.com/H7yde/Soc_Huflit_50MHz
+## Repository
+
+https://github.com/H7yde/Soc_Huflit_50MHz
 
