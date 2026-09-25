@@ -1,0 +1,17 @@
+Time resolution is 1 ps
+============================================================
+[TB][CASE 1] HUMAN
+[TB][INFO] writing 768 RGB words through AXI
+[TB][INPUT] transferred words: 768/768
+[TB][RESULT] status=00000002 classification=1 expected=1
+[TB][PASS]
+============================================================
+[TB][CASE 2] NON-HUMAN
+[TB][INFO] writing 768 RGB words through AXI
+[TB][INPUT] transferred words: 768/768
+[TB][RESULT] status=00000002 classification=0 expected=0
+[TB][PASS]
+============================================================
+[TB][SUMMARY] passed=2 failed=0
+[TB][SUMMARY] CNN AXI TEST PASS
+$finish called at time : 5462450 ns : File "D:/LAB/SOC_HUFLIT_2026_parallel_50MHz/SOC_HUFLIT_2026.srcs/sim_2/new/Tb_CNN.v" Line 199
